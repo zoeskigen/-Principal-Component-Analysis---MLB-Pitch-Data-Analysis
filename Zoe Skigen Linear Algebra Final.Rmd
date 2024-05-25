@@ -1,0 +1,120 @@
+---
+title: "Zoe Skigen Linear Algebra Final"
+output: pdf_document
+date: "2024-05-04"
+---
+```{r}
+library(baseballr)
+library(dplyr)
+library(ggplot2)
+```
+
+```{r results='hide'}
+pitch_data <- statcast_search(start_date = "2021-04-01", end_date = "2021-04-07")
+
+data(pitch_data)
+# Check the structure of the data
+str(pitch_data)
+
+# View the first few rows of the dataset
+head(pitch_data)
+
+# Summary statistics to see distributions and presence of NA values
+summary(pitch_data)
+```
+
+```{r results = 'hide'}
+# Remove rows with missing values in key columns (corrected)
+pitch_data <- na.omit(pitch_data[, c("release_speed", "release_spin_rate", 
+                                     "release_pos_x", "release_pos_z", "plate_x", "plate_z")])
+
+# Ensure all variables are numeric for analysis
+pitch_data$release_speed <- as.numeric(pitch_data$release_speed)
+pitch_data$release_spin_rate <- as.numeric(pitch_data$release_spin_rate)
+pitch_data$release_pos_x <- as.numeric(pitch_data$release_pos_x)
+pitch_data$release_pos_z <- as.numeric(pitch_data$release_pos_z)
+pitch_data$plate_x <- as.numeric(pitch_data$plate_x)
+pitch_data$plate_z <- as.numeric(pitch_data$plate_z)
+```
+
+```{r}
+# Construct the matrix from the data
+analysis_matrix <- as.matrix(pitch_data[, c("release_speed", "release_spin_rate", "release_pos_x", "release_pos_z", "plate_x", "plate_z")])
+
+# Calculate the covariance matrix
+cov_matrix <- cov(analysis_matrix)
+
+# Perform eigenvalue decomposition
+eigen_result <- eigen(cov_matrix)
+
+# Print eigenvalues and eigenvectors
+print(eigen_result$values)
+print(eigen_result$vectors)
+
+```
+ 
+```{r}
+# Analyzing the first eigenvector
+first_eigenvector <- eigen_result$vectors[,1]
+names(first_eigenvector) <- colnames(analysis_matrix)
+print(first_eigenvector)
+
+```
+
+```{r}
+# Visualizing the first eigenvector contributions
+library(ggplot2)
+eigenvector_df <- data.frame(
+  Variable = colnames(analysis_matrix),
+  Contribution = first_eigenvector
+)
+
+# Plotting contributions to the first eigenvector
+ggplot(eigenvector_df, aes(x = Variable, y = Contribution, fill = Variable)) +  # Setting the data and aesthetics
+  geom_col() +  # Adding the column plot
+  ggtitle("Contributions to the First Eigenvector") +  # Adding the plot title
+  theme_minimal() +  # Applying the minimal theme
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotating x-axis labels diagonally
+
+```
+```{r}
+# Extract the second and third eigenvectors
+second_eigenvector <- eigen_result$vectors[,2]
+third_eigenvector <- eigen_result$vectors[,3]
+second_eigenvector
+
+# Create data frames for visualization
+second_eigenvector_df <- data.frame(
+  Variable = colnames(analysis_matrix),
+  Contribution = second_eigenvector
+)
+third_eigenvector_df <- data.frame(
+  Variable = colnames(analysis_matrix),
+  Contribution = third_eigenvector
+)
+
+# Plot contributions for the second eigenvector
+ggplot(second_eigenvector_df, aes(x = Variable, y = Contribution, fill = Variable)) +
+  geom_col() +
+  ggtitle("Contributions to the Second Eigenvector") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+
+# Plot contributions for the third eigenvector
+ggplot(third_eigenvector_df, aes(x = Variable, y = Contribution, fill = Variable)) +
+  geom_col() +
+  ggtitle("Contributions to the Third Eigenvector") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+
+```
+
+```{r}
+# Calculate cumulative variance explained
+cumulative_variance <- cumsum(eigen_result$values) / sum(eigen_result$values)
+
+# Plot cumulative variance explained
+plot(cumulative_variance, type = 'b', xlab = "Number of Components", ylab = "Cumulative Variance Explained",
+     main = "Cumulative Variance Explained by PCA Components")
+```
+
